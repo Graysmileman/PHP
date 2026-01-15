@@ -1,161 +1,189 @@
 <?php
-// ฟังก์ชันแยกชื่อ-สกุล (แบบง่าย)
-function splitName($fullname)
+function splitThaiName($fullName)
 {
-    $prefix = "";
-    $firstname = "";
-    $lastname = "";
-
-    // รายการคำนำหน้า
-    $prefixList = array(
+    $prefixes = [
         "นาย",
         "นาง",
         "นางสาว",
         "เด็กชาย",
-        "เด็กหญิง"
-    );
+        "เด็กหญิง",
+        "น.ส.",
+        "ด.ช.",
+        "ด.ญ.",
+        "ร.ต.ต.",
+        "ด.ต.",
+        "มรว.",
+        "ผศ.",
+        "ดร."
+    ];
 
-    // ตัดช่องว่างหน้าหลัง
-    $fullname = trim($fullname);
+    $result = [
+        "prefix" => "",
+        "firstname" => "",
+        "lastname" => ""
+    ];
 
-    // ตรวจสอบคำนำหน้า
-    foreach ($prefixList as $p) {
-        if (strpos($fullname, $p) === 0) {
-            $prefix = $p;
-            $fullname = str_replace($p, "", $fullname);
+    $fullName = trim(preg_replace('/\s+/', ' ', $fullName));
+
+    // ตรวจหาคำนำหน้าที่อยู่ด้านหน้า แม้จะไม่มีช่องว่างระหว่างคำนำหน้าและชื่อ
+    // เรียงคำนำหน้าตามความยาวเพื่อจับคำนำหน้าที่ยาวที่สุดก่อน
+    usort($prefixes, function ($a, $b) {
+        return mb_strlen($b, 'UTF-8') - mb_strlen($a, 'UTF-8');
+    });
+
+    foreach ($prefixes as $p) {
+        $len = mb_strlen($p, 'UTF-8');
+        if (mb_substr($fullName, 0, $len, 'UTF-8') === $p) {
+            $result['prefix'] = $p;
+            $fullName = ltrim(mb_substr($fullName, $len, null, 'UTF-8'));
             break;
         }
     }
 
-    // แยกชื่อกับสกุล
-    $nameParts = explode(" ", trim($fullname));
+    $parts = explode(' ', $fullName);
 
-    if (count($nameParts) > 0) {
-        $firstname = $nameParts[0];
+    // ถ้ามีเพียงคำเดียว ให้ถือเป็นชื่อ (ไม่มีสกุล)
+    if (count($parts) === 1) {
+        $result['firstname'] = $parts[0];
+        return $result;
     }
 
-    if (count($nameParts) > 1) {
-        $lastname = $nameParts[1];
-    }
+    $result['firstname'] = $parts[0];
+    $result['lastname'] = implode(' ', array_slice($parts, 1));
 
-    return array(
-        "prefix" => $prefix,
-        "firstname" => $firstname,
-        "lastname" => $lastname
-    );
+    return $result;
 }
 
-// ค่าเริ่มต้น
-$result = array(
+// ค่าเริ่มต้นสำหรับการแสดงผล (ป้องกันตัวแปรไม่ถูกกำหนด)
+$data = [
     "prefix" => "",
     "firstname" => "",
     "lastname" => ""
-);
+];
 
-if (isset($_POST["fullname"])) {
-    $result = splitName($_POST["fullname"]);
+if (isset($_POST['fullname'])) {
+    $data = splitThaiName($_POST['fullname']);
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
-    <title>แยกชื่อ - สกุล</title>
-
+    <title>โปรแกรมแยกชื่อ-สกุล</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #eef2ff;
+            margin: 0;
+            background: #f5f7fb;
+            font-family: "Noto Sans Thai", Arial, sans-serif;
             display: flex;
             justify-content: center;
-            padding-top: 50px;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        .box {
-            background: #ffffff;
-            width: 420px;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        .card {
+            width: 720px;
+            background: #fff;
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
         }
 
-        h2 {
-            text-align: center;
-            color: #4f46e5;
+        h1 {
+            margin: 0 0 6px;
+            color: #3b6ef6;
+            font-size: 22px;
         }
 
-        p {
-            text-align: center;
+        .desc {
+            margin-bottom: 22px;
+            color: #6b7280;
             font-size: 14px;
-            color: #666;
+        }
+
+        .row {
+            margin-bottom: 16px;
         }
 
         label {
             display: block;
-            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #6b7280;
             font-size: 14px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid #dbe1f1;
+            font-size: 15px;
+        }
+
+        input[readonly] {
+            background: #f8fafc;
         }
 
         button {
-            width: 100%;
-            margin-top: 15px;
-            padding: 10px;
-            background: #4f46e5;
-            color: white;
+            padding: 0 18px;
+            background: #3b6ef6;
+            color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 15px;
+            border-radius: 10px;
+            font-weight: 600;
             cursor: pointer;
-        }
-
-        button:hover {
-            background: #4338ca;
+            white-space: nowrap;
         }
 
         .result {
-            margin-top: 20px;
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .result p {
-            text-align: left;
-            margin: 6px 0;
+            margin-top: 24px;
+            border-top: 1px solid #eef2ff;
+            padding-top: 20px;
         }
     </style>
 </head>
 
 <body>
 
-<div class="box">
-    <h2>โปรแกรมแยกชื่อ - สกุล</h2>
-    <p>กรอกชื่อ-สกุลพร้อมคำนำหน้า</p>
+    <div class="card">
+        <h1>โปรแกรมแยกชื่อ-สกุล</h1>
+        <div class="desc">กรอกชื่อ-สกุลแบบเต็ม (รวมคำนำหน้า ถ้ามี) แล้วกดปุ่มเพื่อแยก</div>
 
-    <form method="post">
-        <label>ชื่อ-สกุล</label>
-        <input type="text" name="fullname" placeholder="นายสมชาย ใจดี" required>
+        <form method="post">
+            <div class="row">
+                <label>ชื่อ-สกุล</label>
+                <div class="input-group">
+                    <input type="text" name="fullname" placeholder="เช่น นายสมชาย ใจดี"
+                        value="<?= isset($_POST['fullname']) ? htmlspecialchars($_POST['fullname'], ENT_QUOTES, 'UTF-8') : '' ?>">
+                    <button type="submit">แยก</button>
+                </div>
+            </div>
+        </form>
 
-        <button type="submit">แยกชื่อ</button>
-    </form>
-
-    <?php if (!empty($result["firstname"])) { ?>
         <div class="result">
-            <p><strong>คำนำหน้า:</strong> <?= $result["prefix"] ?></p>
-            <p><strong>ชื่อ:</strong> <?= $result["firstname"] ?></p>
-            <p><strong>สกุล:</strong> <?= $result["lastname"] ?></p>
+            <div class="row">
+                <label>คำนำหน้า</label>
+                <input type="text" readonly value="<?= htmlspecialchars($data['prefix'], ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+
+            <div class="row">
+                <label>ชื่อ</label>
+                <input type="text" readonly value="<?= htmlspecialchars($data['firstname'], ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+
+            <div class="row">
+                <label>สกุล</label>
+                <input type="text" readonly value="<?= htmlspecialchars($data['lastname'], ENT_QUOTES, 'UTF-8') ?>">
+            </div>
         </div>
-    <?php } ?>
-</div>
+    </div>
 
 </body>
+
 </html>
